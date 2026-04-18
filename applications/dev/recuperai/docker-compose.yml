@@ -10,7 +10,7 @@
 #   https://recuperai-portal-dev.zepapagaio.com      (UI devedor, port 3001)
 #
 # Wildcard CNAME *.zepapagaio.com no Cloudflare resolve qualquer sub.
-# Traefik do Easypanel emite Let's Encrypt automaticamente.
+# Traefik do Easypanel (provider Docker) lê labels de container (services.<svc>.labels).
 #
 # Env vars necessárias (setar no Portainer ao cadastrar a stack):
 #   POSTGRES_PASSWORD  — gerar com `openssl rand -base64 24`
@@ -18,9 +18,6 @@
 #
 # Após primeiro deploy, rodar migrate uma vez via terminal do container api:
 #   cd /app/packages/db && npx prisma migrate deploy
-#
-# IMPORTANTE: NEXT_PUBLIC_API_BASE_URL e NEXT_PUBLIC_API_BASE são baked
-# no build das UIs (build-args do GHA). Mudar URL = rebuild.
 
 services:
   postgres:
@@ -32,11 +29,6 @@ services:
       POSTGRES_DB: recuperai
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U recuperai"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   api:
     image: ghcr.io/raphaelduarte/recuperai-api:latest
@@ -55,15 +47,14 @@ services:
     networks:
       - default
       - easypanel-geral
-    deploy:
-      labels:
-        - "traefik.enable=true"
-        - "traefik.docker.network=easypanel-geral"
-        - "traefik.http.routers.recuperai-api-dev.rule=Host(`recuperai-api-dev.zepapagaio.com`)"
-        - "traefik.http.routers.recuperai-api-dev.entrypoints=websecure"
-        - "traefik.http.routers.recuperai-api-dev.tls=true"
-        - "traefik.http.routers.recuperai-api-dev.tls.certresolver=letsencrypt"
-        - "traefik.http.services.recuperai-api-dev.loadbalancer.server.port=4000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=easypanel-geral"
+      - "traefik.http.routers.recuperai-api-dev.rule=Host(`recuperai-api-dev.zepapagaio.com`)"
+      - "traefik.http.routers.recuperai-api-dev.entrypoints=websecure"
+      - "traefik.http.routers.recuperai-api-dev.tls=true"
+      - "traefik.http.routers.recuperai-api-dev.tls.certresolver=letsencrypt"
+      - "traefik.http.services.recuperai-api-dev.loadbalancer.server.port=4000"
 
   backoffice:
     image: ghcr.io/raphaelduarte/recuperai-backoffice:latest
@@ -71,15 +62,14 @@ services:
     networks:
       - default
       - easypanel-geral
-    deploy:
-      labels:
-        - "traefik.enable=true"
-        - "traefik.docker.network=easypanel-geral"
-        - "traefik.http.routers.recuperai-backoffice-dev.rule=Host(`recuperai-backoffice-dev.zepapagaio.com`)"
-        - "traefik.http.routers.recuperai-backoffice-dev.entrypoints=websecure"
-        - "traefik.http.routers.recuperai-backoffice-dev.tls=true"
-        - "traefik.http.routers.recuperai-backoffice-dev.tls.certresolver=letsencrypt"
-        - "traefik.http.services.recuperai-backoffice-dev.loadbalancer.server.port=3000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=easypanel-geral"
+      - "traefik.http.routers.recuperai-backoffice-dev.rule=Host(`recuperai-backoffice-dev.zepapagaio.com`)"
+      - "traefik.http.routers.recuperai-backoffice-dev.entrypoints=websecure"
+      - "traefik.http.routers.recuperai-backoffice-dev.tls=true"
+      - "traefik.http.routers.recuperai-backoffice-dev.tls.certresolver=letsencrypt"
+      - "traefik.http.services.recuperai-backoffice-dev.loadbalancer.server.port=3000"
 
   portal-devedor:
     image: ghcr.io/raphaelduarte/recuperai-portal-devedor:latest
@@ -87,15 +77,14 @@ services:
     networks:
       - default
       - easypanel-geral
-    deploy:
-      labels:
-        - "traefik.enable=true"
-        - "traefik.docker.network=easypanel-geral"
-        - "traefik.http.routers.recuperai-portal-dev.rule=Host(`recuperai-portal-dev.zepapagaio.com`)"
-        - "traefik.http.routers.recuperai-portal-dev.entrypoints=websecure"
-        - "traefik.http.routers.recuperai-portal-dev.tls=true"
-        - "traefik.http.routers.recuperai-portal-dev.tls.certresolver=letsencrypt"
-        - "traefik.http.services.recuperai-portal-dev.loadbalancer.server.port=3001"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=easypanel-geral"
+      - "traefik.http.routers.recuperai-portal-dev.rule=Host(`recuperai-portal-dev.zepapagaio.com`)"
+      - "traefik.http.routers.recuperai-portal-dev.entrypoints=websecure"
+      - "traefik.http.routers.recuperai-portal-dev.tls=true"
+      - "traefik.http.routers.recuperai-portal-dev.tls.certresolver=letsencrypt"
+      - "traefik.http.services.recuperai-portal-dev.loadbalancer.server.port=3001"
 
 volumes:
   postgres_data:
