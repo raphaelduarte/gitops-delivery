@@ -1,0 +1,71 @@
+# Recuperai DEV — smoke test (api + postgres)
+#
+# Imagens vêm do GHCR, buildadas por:
+#   github.com/raphaelduarte/recuperai → .github/workflows/build-images.yml
+#
+# Cadastrado no Portainer como Stack GitOps:
+#   Repo: github.com/raphaelduarte/gitops-delivery
+#   Compose path: applications/dev/recuperai/docker-compose.yml
+#   Polling: 1min OU webhook
+#
+# Env vars necessárias (setar no Portainer ao cadastrar a stack):
+#   POSTGRES_PASSWORD  — gerar com `openssl rand -base64 24`
+#   JWT_SECRET         — gerar com `openssl rand -base64 48`
+#
+# Domínio externo: https://recuperai-api-dev.zepapagaio.com
+#   - CNAME wildcard *.zepapagaio.com já resolve
+#   - Traefik do Easypanel emite cert Let's Encrypt automaticamente
+#
+# Após primeiro deploy, rodar migrate uma vez via terminal do container api:
+#   cd /app/packages/db && npx prisma migrate deploy
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: recuperai
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: recuperai
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U recuperai"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    image: ghcr.io/raphaelduarte/recuperai-api:latest
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: "4000"
+      HOSTNAME: 0.0.0.0
+      DATABASE_URL: postgresql://recuperai:${POSTGRES_PASSWORD}@postgres:5432/recuperai?schema=public
+      JWT_SECRET: ${JWT_SECRET}
+      RECUPERAI_PAYMENT_PROVIDER: mock
+      RECUPERAI_EMAIL_PROVIDER: mock
+      RECUPERAI_SMS_PROVIDER: mock
+    networks:
+      - default
+      - easypanel-geral
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=easypanel-geral"
+      - "traefik.http.routers.recuperai-api-dev.rule=Host(`recuperai-api-dev.zepapagaio.com`)"
+      - "traefik.http.routers.recuperai-api-dev.entrypoints=websecure"
+      - "traefik.http.routers.recuperai-api-dev.tls=true"
+      - "traefik.http.routers.recuperai-api-dev.tls.certresolver=letsencrypt"
+      - "traefik.http.services.recuperai-api-dev.loadbalancer.server.port=4000"
+
+volumes:
+  postgres_data:
+
+networks:
+  default:
+  easypanel-geral:
+    external: true
