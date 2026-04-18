@@ -46,10 +46,10 @@ services:
       RECUPERAI_SMS_PROVIDER: mock
     networks:
       - default
-      - easypanel-geral
+      - easypanel
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=easypanel-geral"
+      - "traefik.docker.network=easypanel"
       - "traefik.http.routers.recuperai-api-dev.rule=Host(`recuperai-api-dev.zepapagaio.com`)"
       - "traefik.http.routers.recuperai-api-dev.entrypoints=websecure"
       - "traefik.http.routers.recuperai-api-dev.tls=true"
@@ -61,10 +61,10 @@ services:
     restart: unless-stopped
     networks:
       - default
-      - easypanel-geral
+      - easypanel
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=easypanel-geral"
+      - "traefik.docker.network=easypanel"
       - "traefik.http.routers.recuperai-backoffice-dev.rule=Host(`recuperai-backoffice-dev.zepapagaio.com`)"
       - "traefik.http.routers.recuperai-backoffice-dev.entrypoints=websecure"
       - "traefik.http.routers.recuperai-backoffice-dev.tls=true"
@@ -76,10 +76,10 @@ services:
     restart: unless-stopped
     networks:
       - default
-      - easypanel-geral
+      - easypanel
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=easypanel-geral"
+      - "traefik.docker.network=easypanel"
       - "traefik.http.routers.recuperai-portal-dev.rule=Host(`recuperai-portal-dev.zepapagaio.com`)"
       - "traefik.http.routers.recuperai-portal-dev.entrypoints=websecure"
       - "traefik.http.routers.recuperai-portal-dev.tls=true"
@@ -91,5 +91,5 @@ volumes:
 
 networks:
   default:
-  easypanel-geral:
+  easypanel:
     external: true
