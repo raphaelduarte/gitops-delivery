@@ -1,23 +1,26 @@
-# Recuperai DEV — smoke test (api + postgres)
+# Recuperai DEV — stack completa (api + backoffice + portal-devedor + postgres)
 #
 # Imagens vêm do GHCR, buildadas por:
 #   github.com/raphaelduarte/recuperai → .github/workflows/build-images.yml
+#   (matrix: api, backoffice, portal-devedor)
 #
-# Cadastrado no Portainer como Stack GitOps:
-#   Repo: github.com/raphaelduarte/gitops-delivery
-#   Compose path: applications/dev/recuperai/docker-compose.yml
-#   Polling: 1min OU webhook
+# Domínios externos:
+#   https://recuperai-api-dev.zepapagaio.com         (API REST, port 4000)
+#   https://recuperai-backoffice-dev.zepapagaio.com  (UI admin, port 3000)
+#   https://recuperai-portal-dev.zepapagaio.com      (UI devedor, port 3001)
+#
+# Wildcard CNAME *.zepapagaio.com no Cloudflare resolve qualquer sub.
+# Traefik do Easypanel emite Let's Encrypt automaticamente.
 #
 # Env vars necessárias (setar no Portainer ao cadastrar a stack):
 #   POSTGRES_PASSWORD  — gerar com `openssl rand -base64 24`
 #   JWT_SECRET         — gerar com `openssl rand -base64 48`
 #
-# Domínio externo: https://recuperai-api-dev.zepapagaio.com
-#   - CNAME wildcard *.zepapagaio.com já resolve
-#   - Traefik do Easypanel emite cert Let's Encrypt automaticamente
-#
 # Após primeiro deploy, rodar migrate uma vez via terminal do container api:
 #   cd /app/packages/db && npx prisma migrate deploy
+#
+# IMPORTANTE: NEXT_PUBLIC_API_BASE_URL e NEXT_PUBLIC_API_BASE são baked
+# no build das UIs (build-args do GHA). Mudar URL = rebuild.
 
 services:
   postgres:
@@ -61,6 +64,38 @@ services:
         - "traefik.http.routers.recuperai-api-dev.tls=true"
         - "traefik.http.routers.recuperai-api-dev.tls.certresolver=letsencrypt"
         - "traefik.http.services.recuperai-api-dev.loadbalancer.server.port=4000"
+
+  backoffice:
+    image: ghcr.io/raphaelduarte/recuperai-backoffice:latest
+    restart: unless-stopped
+    networks:
+      - default
+      - easypanel-geral
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=easypanel-geral"
+        - "traefik.http.routers.recuperai-backoffice-dev.rule=Host(`recuperai-backoffice-dev.zepapagaio.com`)"
+        - "traefik.http.routers.recuperai-backoffice-dev.entrypoints=websecure"
+        - "traefik.http.routers.recuperai-backoffice-dev.tls=true"
+        - "traefik.http.routers.recuperai-backoffice-dev.tls.certresolver=letsencrypt"
+        - "traefik.http.services.recuperai-backoffice-dev.loadbalancer.server.port=3000"
+
+  portal-devedor:
+    image: ghcr.io/raphaelduarte/recuperai-portal-devedor:latest
+    restart: unless-stopped
+    networks:
+      - default
+      - easypanel-geral
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=easypanel-geral"
+        - "traefik.http.routers.recuperai-portal-dev.rule=Host(`recuperai-portal-dev.zepapagaio.com`)"
+        - "traefik.http.routers.recuperai-portal-dev.entrypoints=websecure"
+        - "traefik.http.routers.recuperai-portal-dev.tls=true"
+        - "traefik.http.routers.recuperai-portal-dev.tls.certresolver=letsencrypt"
+        - "traefik.http.services.recuperai-portal-dev.loadbalancer.server.port=3001"
 
 volumes:
   postgres_data:
